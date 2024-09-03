@@ -22,7 +22,7 @@ class Mod:
         with yaml_path.open(encoding='utf-8-sig') as file:
             manifest_data = yaml.safe_load(file)[0]
 
-        return cls(name=manifest_data['Name'], version=manifest_data['Version'])
+        return cls(name=manifest_data['Name'], version=str(manifest_data['Version']))
 
     def __repr__(self):
         return f"<Mod '{self.name}' v{self.version}>"

@@ -1,9 +1,17 @@
 Grid {
+    height: auto;
     grid-size: 3;
     grid-rows: auto;
-    height: auto;
+    grid-gutter: 0 1;
 }
 
 ModTile {
     border: round $accent;
+    padding: 0 1;
+}
+
+Switch {
+    border: none;
+    margin: 0 2 0 0;
+    padding: 0;
 }

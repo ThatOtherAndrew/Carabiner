@@ -11,13 +11,17 @@ from textual.widget import Widget
 from . import celeste
 
 
-class ModTile(Widget):
+class ModTile(containers.Horizontal):
     def __init__(self, mod: celeste.Mod, *children: Widget):
         self.mod = mod
         super().__init__(*children)
 
     def compose(self) -> ComposeResult:
-        yield widgets.Pretty(self.mod)
+        yield widgets.Switch(animate=False)
+        yield widgets.Static(f'[green]{self.mod.name}[/] [dim]{self.mod.version}')
+
+    def on_click(self) -> None:
+        self.query_one(widgets.Switch).toggle()
 
 class CelesteInstance(containers.VerticalScroll):
     def __init__(self, path: str | PathLike[str], *children: Widget):
@@ -25,10 +29,10 @@ class CelesteInstance(containers.VerticalScroll):
         self.path = Path(path).resolve()
 
     def compose(self) -> ComposeResult:
-        with widgets.Collapsible(title='Installation'):
+        with widgets.Collapsible(title='Installation', collapsed=False):
             yield widgets.Pretty(self.path)
 
-        with widgets.Collapsible(title='Mods'):
+        with widgets.Collapsible(title='Mods', collapsed=False):
             with containers.Grid():
                 for mod in (self.path / 'Mods').glob('*.zip'):
                     yield ModTile(mod=celeste.Mod.from_zip(mod))
