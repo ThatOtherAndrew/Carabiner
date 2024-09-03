@@ -1,0 +1,9 @@
+Grid {
+    grid-size: 3;
+    grid-rows: auto;
+    height: auto;
+}
+
+ModTile {
+    border: round $accent;
+}

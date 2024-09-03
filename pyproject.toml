@@ -1,0 +1,26 @@
+[project]
+name = "celeste-carabiner"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pyyaml>=6.0.2",
+    "textual>=0.79.1",
+]
+
+[project.scripts]
+carabiner = "carabiner:run"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build]
+packages = ["src/carabiner"]
+
+[tool.uv]
+dev-dependencies = [
+    "textual-dev>=1.6.1",
+    "uv>=0.4.3",
+]
