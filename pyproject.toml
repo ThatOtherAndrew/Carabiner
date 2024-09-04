@@ -1,7 +1,7 @@
 [project]
 name = "celeste-carabiner"
 version = "0.1.0"
-description = "Add your description here"
+description = "A simple TUI mod manager for Celeste."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
