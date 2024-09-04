@@ -8,6 +8,14 @@ Grid {
 ModTile {
     border: round $accent;
     padding: 0 1;
+
+    &:hover {
+        border: heavy $accent;
+    }
+
+    &:focus-within {
+        border: double $accent;
+    }
 }
 
 Switch {

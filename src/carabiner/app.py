@@ -126,6 +126,7 @@ class Carabiner(App):
     ]
 
     def compose(self) -> ComposeResult:
+        yield widgets.Header(icon='🍓')
         yield widgets.TabbedContent()
         yield widgets.Footer()
 
