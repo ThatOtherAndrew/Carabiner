@@ -8,11 +8,23 @@ import yaml
 from textual import containers, widgets
 from textual.app import App, ComposeResult
 from textual.binding import Binding
+from textual.message import Message
+from textual.reactive import reactive
 from textual.widget import Widget
+from textual.widgets import Switch
 
 
 class ModTile(containers.Horizontal):
-    def __init__(self, mod_zip_path: str | PathLike[str], *children: Widget):
+    class Toggled(Message):
+        def __init__(self, mod_name: str, file_name: str, is_enabled: bool) -> None:
+            super().__init__()
+            self.mod_name = mod_name
+            self.file_name = file_name
+            self.is_enabled = is_enabled
+
+    is_enabled = reactive(False)
+
+    def __init__(self, mod_zip_path: str | PathLike[str], is_enabled: bool, *children: Widget):
         super().__init__(*children)
 
         self.path = Path(mod_zip_path).resolve()
@@ -20,6 +32,7 @@ class ModTile(containers.Horizontal):
         manifest = self._get_mod_manifest()
         self.mod_name: str = manifest['Name']
         self.mod_version = str(manifest['Version'])
+        self.set_reactive(ModTile.is_enabled, is_enabled)
 
     def _get_mod_manifest(self) -> dict[str, Any]:
         path = zipfile.Path(self.path)
@@ -36,16 +49,53 @@ class ModTile(containers.Horizontal):
         return manifest_data
 
     def compose(self) -> ComposeResult:
-        yield widgets.Switch(animate=False)
+        yield widgets.Switch(value=self.is_enabled)
         yield widgets.Static(f'[green]{self.mod_name}[/] [dim]{self.mod_version}')
+
+    def watch_is_enabled(self, _, value: bool) -> None:
+        self.query_one(Switch).value = value
+        self.post_message(self.Toggled(mod_name=self.mod_name, file_name=self.path.name, is_enabled=value))
 
     def on_click(self) -> None:
         self.query_one(widgets.Switch).toggle()
+
+    def on_switch_changed(self, event: widgets.Switch.Changed) -> None:
+        self.is_enabled = not self.is_enabled
 
 class CelesteInstance(containers.VerticalScroll):
     def __init__(self, path: str | PathLike[str], *children: Widget):
         super().__init__(*children)
         self.path = Path(path).resolve()
+        self.mods_enabled: dict[str, bool] = {}
+        self.blacklist_file = self.path / 'Mods' / 'blacklist.txt'
+
+    def get_blacklist_enabled(self, mod_file_name: str):
+        return mod_file_name not in [
+            line.strip()
+            for line in self.blacklist_file.read_text().splitlines()
+            if not line.startswith('#')
+        ]
+
+    def set_blacklist(self, mod_file_name: str, enabled: bool):
+        lines = self.blacklist_file.read_text().splitlines()
+
+        if enabled:
+            for i, line in enumerate(lines):
+                if line.strip() == mod_file_name:
+                    lines[i] = '# ' + mod_file_name
+                    break
+        else:
+            exists = False
+            for i, line in enumerate(lines):
+                if line.lstrip('# ').rstrip() == mod_file_name:
+                    lines[i] = mod_file_name
+                    exists = True
+                    break
+            if not exists:
+                lines.append(mod_file_name)
+
+        self.blacklist_file.write_text('\n'.join(lines))
+
 
     def compose(self) -> ComposeResult:
         with widgets.Collapsible(title='Installation', collapsed=False):
@@ -54,7 +104,17 @@ class CelesteInstance(containers.VerticalScroll):
         with widgets.Collapsible(title='Mods', collapsed=False):
             with containers.Grid():
                 for mod in (self.path / 'Mods').glob('*.zip'):
-                    yield ModTile(mod)
+                    mod_tile = ModTile(mod, is_enabled=self.get_blacklist_enabled(mod.name))
+                    self.mods_enabled[mod_tile.mod_name] = mod_tile.is_enabled
+                    yield mod_tile
+
+    def on_mod_tile_toggled(self, message: ModTile.Toggled) -> None:
+        self.set_blacklist(message.file_name, message.is_enabled)
+
+        if message.is_enabled:
+            self.notify(f'[green]Enabled[/] {message.mod_name}', severity='information')
+        else:
+            self.notify(f'[red]Disabled[/] {message.mod_name}', severity='error')
 
 
 class Carabiner(App):
